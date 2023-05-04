@@ -39,6 +39,9 @@ AABCharacter::AABCharacter()
     ArmLengthSpeed = 3.0f;
     ArmRotationSpeed = 10.0f;
 
+    // 캐릭터 점프 높이 수치 설정
+    GetCharacterMovement()->JumpZVelocity = 800.0f;
+
 }
 
 // Called when the game starts or when spawned
@@ -141,7 +144,7 @@ void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
     // 액션
     PlayerInputComponent->BindAction(TEXT("ViewChange"), EInputEvent::IE_Pressed, this, &AABCharacter::ViewChange);
-
+    PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &ACharacter::Jump);
 }
 
 void AABCharacter::UpDown(float NewAxisValue)
