@@ -9,6 +9,9 @@ UABAnimInstance::UABAnimInstance()
 {
 	CurrentPawnSpeed = 0.0f;
     
+    IsInAir = false;
+    IsDead = false;
+
     static ConstructorHelpers::FObjectFinder<UAnimMontage> ATTACK_MONTAGE(TEXT("AnimMontage'/Game/Animations/SK_Mannequin_Skeleton_Montage.SK_Mannequin_Skeleton_Montage'"));
     if (ATTACK_MONTAGE.Succeeded())
     {
@@ -21,14 +24,28 @@ void UABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     Super::NativeUpdateAnimation(DeltaSeconds);
 
     auto Pawn = TryGetPawnOwner();
-    if (::IsValid(Pawn))
-    {
-        // 스피드 값 전달
-        CurrentPawnSpeed = Pawn->GetVelocity().Size();
+    //if (::IsValid(Pawn))
+    //{
+    //    // 스피드 값 전달
+    //    CurrentPawnSpeed = Pawn->GetVelocity().Size();
 
-        // 점프 중인지 아닌지 참거짓을 전달
+    //    // 점프 중인지 아닌지 참거짓을 전달
+    //    auto Character = Cast<ACharacter>(Pawn);
+    //    if (Character)
+    //    {
+    //        IsInAir = Character->GetMovementComponent()->IsFalling();
+    //    }
+    //}
+    if (false == ::IsValid(Pawn))
+    {
+        return;
+    }
+
+    if (false == IsDead)
+    {
+        CurrentPawnSpeed = Pawn->GetVelocity().Size();
         auto Character = Cast<ACharacter>(Pawn);
-        if (Character)
+        if (nullptr != Character)
         {
             IsInAir = Character->GetMovementComponent()->IsFalling();
         }
@@ -42,6 +59,7 @@ void UABAnimInstance::PlayAttackMontage()
     {
         Montage_Play(AttackMontage, 1.0f);
     }*/
+    ABCHECK(false == IsDead);
     // 멤버 변수 선언 이후 델리게이트에 의해 공격 시작 종료 감지 가능
     // 따라서 Montage_IsPlaying 함수 사용 필요 없어짐
     Montage_Play(AttackMontage, 1.0f);
@@ -49,6 +67,7 @@ void UABAnimInstance::PlayAttackMontage()
 
 void UABAnimInstance::JumpToAttackMontageSection(int32 NewSection)
 {
+    ABCHECK(false == IsDead);
     ABCHECK(Montage_IsPlaying(AttackMontage));
     Montage_JumpToSection(GetAttackMontageSectionName(NewSection), AttackMontage);
 }
