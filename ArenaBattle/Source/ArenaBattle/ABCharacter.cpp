@@ -3,6 +3,7 @@
 
 #include "ABCharacter.h"
 #include "ABAnimInstance.h"
+#include "ABWeapon.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values
@@ -35,6 +36,20 @@ AABCharacter::AABCharacter()
         GetMesh()->SetAnimInstanceClass(BP_WARRIORS_ANIM.Class);
     }
 
+    // 해당 소켓에 무기 부착
+    /*FName WeaponSocket(TEXT("hand_rSocket"));
+    if (GetMesh()->DoesSocketExist(WeaponSocket))
+    {
+        Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
+        static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_WEAPON(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
+        if (SK_WEAPON.Succeeded())
+        {
+            Weapon->SetSkeletalMesh(SK_WEAPON.Object);
+        }
+
+        Weapon->SetupAttachment(GetMesh(), WeaponSocket);
+    }*/
+
     SetControlMode(0);
     SetControlMode(EControlMode::DIABLO);
 
@@ -58,6 +73,14 @@ void AABCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+    // 소켓에 Weapon 액터 부착
+    /*FName WeaponSocket(TEXT("hand_rSocket"));
+    auto CurWeapon = GetWorld()->SpawnActor<AABWeapon>(FVector::ZeroVector, FRotator::ZeroRotator);
+    if (nullptr != CurWeapon)
+    {
+        CurWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+    }*/
+
 }
 
 void AABCharacter::SetControlMode(EControlMode NewControlMode)
@@ -195,6 +218,25 @@ void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
     PlayerInputComponent->BindAction(TEXT("ViewChange"), EInputEvent::IE_Pressed, this, &AABCharacter::ViewChange);
     PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &ACharacter::Jump);
     PlayerInputComponent->BindAction(TEXT("Attack"), EInputEvent::IE_Pressed, this, &AABCharacter::Attack);
+}
+
+bool AABCharacter::CanSetWeapon()
+{
+    return (nullptr == CurrentWeapon);
+}
+
+void AABCharacter::SetWeapon(AABWeapon* NewWeapon)
+{
+    ABCHECK(nullptr != NewWeapon && nullptr == CurrentWeapon);
+    
+    // 소켓에 웨폰 부착
+    FName WeaponSocket(TEXT("hand_rSocket"));
+    if (nullptr != NewWeapon)
+    {
+        NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+        NewWeapon->SetOwner(this);
+        CurrentWeapon = NewWeapon;
+    }
 }
 
 void AABCharacter::UpDown(float NewAxisValue)
