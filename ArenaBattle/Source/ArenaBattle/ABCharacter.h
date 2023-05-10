@@ -59,11 +59,17 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	USkeletalMeshComponent* Weapon;
 
+	UPROPERTY(VisibleAnywhere, Category = Stat)
+	class UABCharacterStatComponent* CharacterStat;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	USpringArmComponent* SpringArm;
 
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	class UWidgetComponent* HPBarWidget;
 
 private:
 	// รเ
