@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "ABCharacter.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
+
 UCLASS()
 class ARENABATTLE_API AABCharacter : public ACharacter
 {
@@ -22,7 +24,8 @@ protected:
 	enum class EControlMode
 	{
 		GTA,
-		DIABLO
+		DIABLO,
+		NPC
 	};
 	
 	void SetControlMode(EControlMode NewControlMode);
@@ -44,6 +47,8 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstingator, AActor* DamageCauser) override;
+
+	virtual void PossessedBy(AController* NewController) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -71,6 +76,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = UI)
 	class UWidgetComponent* HPBarWidget;
 
+	void Attack();
+	FOnAttackEndDelegate OnAttackEnd;
+
 private:
 	// 축
 	// W, S
@@ -86,7 +94,7 @@ private:
 	// Shift + V => GTA, 디아블로 모드 전환
 	void ViewChange();
 	// 왼쪽 마우스 버튼 => 공격
-	void Attack();
+	//void Attack();
 
 	// ====== 몽타주 =====
 	UFUNCTION()

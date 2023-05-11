@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 #include "Components/WidgetComponent.h"
 #include "ABCharacterWidget.h"
+#include "ABAIController.h"
 
 // Sets default values
 AABCharacter::AABCharacter()
@@ -81,6 +82,12 @@ AABCharacter::AABCharacter()
         HPBarWidget->SetWidgetClass(UI_HUD.Class);
         HPBarWidget->SetDrawSize(FVector2D(150.0f, 50.0f));
     }
+
+    // ABCharacter마다 ABAIController 액터 생성
+    // 플레이어 캐릭터를 제외한 모든 캐릭터는 ABAIController의 지배 받게 됨
+    AIControllerClass = AABAIController::StaticClass();
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
 }
 
 // Called when the game starts or when spawned
@@ -132,6 +139,12 @@ void AABCharacter::SetControlMode(EControlMode NewControlMode)
         GetCharacterMovement()->bOrientRotationToMovement = false;
         GetCharacterMovement()->bUseControllerDesiredRotation = true;
         GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
+        break;
+    case EControlMode::NPC:
+        bUseControllerRotationYaw = false;
+        GetCharacterMovement()->bUseControllerDesiredRotation = false;
+        GetCharacterMovement()->bOrientRotationToMovement = true;
+        GetCharacterMovement()->RotationRate = FRotator(0.0f, 480.0f, 0.0f);
         break;
     default:
         break;
@@ -231,6 +244,22 @@ float AABCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
     CharacterStat->SetDamage(FinalDamage);
 
     return FinalDamage;
+}
+
+void AABCharacter::PossessedBy(AController* NewController)
+{
+    Super::PossessedBy(NewController);
+
+    if (true == IsPlayerControlled())
+    {
+        SetControlMode(EControlMode::DIABLO);
+        GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+    }
+    else
+    {
+        SetControlMode(EControlMode::NPC);
+        GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+    }
 }
 
 // Called to bind functionality to input
@@ -382,6 +411,7 @@ void AABCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool binterrupted
     ABCHECK(0 < CurrentCombo); 
     IsAttacking = false;
     AttackEndComboState();
+    OnAttackEnd.Broadcast();
 }
 
 void AABCharacter::AttackStartComboState()
