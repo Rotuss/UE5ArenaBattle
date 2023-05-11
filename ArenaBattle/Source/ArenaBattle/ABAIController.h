@@ -17,16 +17,6 @@ class ARENABATTLE_API AABAIController : public AAIController
 public:
     AABAIController();
 
-//protected:
-//    virtual void OnPossess(APawn* InPawn) override;
-//    virtual void OnUnPossess() override;
-//
-//private:
-//    void OnRepeatTimer();
-//
-//    FTimerHandle RepeatTimerHandle;
-//    float RepeatInterval;
-
     virtual void OnPossess(APawn* InPawn) override;
 
     static const FName HomePosKey;

@@ -43,20 +43,6 @@ AABCharacter::AABCharacter()
         GetMesh()->SetAnimInstanceClass(BP_WARRIORS_ANIM.Class);
     }
 
-    // 해당 소켓에 무기 부착
-    /*FName WeaponSocket(TEXT("hand_rSocket"));
-    if (GetMesh()->DoesSocketExist(WeaponSocket))
-    {
-        Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
-        static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_WEAPON(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
-        if (SK_WEAPON.Succeeded())
-        {
-            Weapon->SetSkeletalMesh(SK_WEAPON.Object);
-        }
-
-        Weapon->SetupAttachment(GetMesh(), WeaponSocket);
-    }*/
-
     SetControlMode(0);
     SetControlMode(EControlMode::DIABLO);
 
@@ -94,14 +80,6 @@ AABCharacter::AABCharacter()
 void AABCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-    // 소켓에 Weapon 액터 부착
-    /*FName WeaponSocket(TEXT("hand_rSocket"));
-    auto CurWeapon = GetWorld()->SpawnActor<AABWeapon>(FVector::ZeroVector, FRotator::ZeroRotator);
-    if (nullptr != CurWeapon)
-    {
-        CurWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
-    }*/
 
 }
 
@@ -112,8 +90,6 @@ void AABCharacter::SetControlMode(EControlMode NewControlMode)
     switch (CurrentControlMode)
     {
     case EControlMode::GTA:
-        /*SpringArm->TargetArmLength = 450.0f;
-        SpringArm->SetRelativeRotation(FRotator::ZeroRotator);*/
         SpringArm->bUsePawnControlRotation = true;
         SpringArm->bInheritPitch = true;
         SpringArm->bInheritRoll = true;
@@ -125,8 +101,6 @@ void AABCharacter::SetControlMode(EControlMode NewControlMode)
         GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
         break;
     case EControlMode::DIABLO:
-        /*SpringArm->TargetArmLength = 800.0f;
-        SpringArm->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));*/
         ArmLengthTo = 800.0f;
         ArmRotationTo = FRotator(-45.0f, 0.0f, 0.0f);
         SpringArm->bUsePawnControlRotation = false;
@@ -134,7 +108,7 @@ void AABCharacter::SetControlMode(EControlMode NewControlMode)
         SpringArm->bInheritRoll = false;
         SpringArm->bInheritYaw = false;
         SpringArm->bDoCollisionTest = false;
-        // 45도씩 끊기는 회전을 부드럽게 만듦어 줌
+        // 45도씩 끊기는 회전을 부드럽게 만들어 줌
         bUseControllerRotationYaw = false;
         GetCharacterMovement()->bOrientRotationToMovement = false;
         GetCharacterMovement()->bUseControllerDesiredRotation = true;
@@ -155,8 +129,6 @@ void AABCharacter::SetControlMode(int32 ControlMode)
 {
     if (0 == ControlMode)
     {
-        /*SpringArm->TargetArmLength = 450.0f;
-        SpringArm->SetRelativeRotation(FRotator::ZeroRotator);*/
         SpringArm->bUsePawnControlRotation = true;
         SpringArm->bInheritPitch = true;
         SpringArm->bInheritRoll = true;
@@ -195,16 +167,11 @@ void AABCharacter::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
 
-    /*auto AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
-    ABCHECK(nullptr != AnimInstance);
-
-    AnimInstance->OnMontageEnded.AddDynamic(this, &AABCharacter::OnAttackMontageEnded);*/
     ABAnim = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
     ABCHECK(nullptr != ABAnim);
 
     ABAnim->OnMontageEnded.AddDynamic(this, &AABCharacter::OnAttackMontageEnded);
     ABAnim->OnNextAttackCheck.AddLambda([this]()->void {
-        //ABLOG(Warning, TEXT("OnNextAttackCheck"));
         CanNextCombo = false;
 
         if (true == IsComboInputOn)
@@ -234,12 +201,6 @@ float AABCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
     float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstingator, DamageCauser);
     
     ABLOG(Warning, TEXT("Actor : %s took damage : %f"), *GetName(), FinalDamage);
-
-    /*if (0.0f < FinalDamage)
-    {
-        ABAnim->SetDeadAnim();
-        SetActorEnableCollision(false);
-    }*/
 
     CharacterStat->SetDamage(FinalDamage);
 
@@ -300,9 +261,6 @@ void AABCharacter::SetWeapon(AABWeapon* NewWeapon)
 
 void AABCharacter::UpDown(float NewAxisValue)
 {
-    // 컨트롤러 즉 캐릭터의 시선 방향으로 이동
-    //AddMovementInput(FRotationMatrix(FRotator(0.0f, GetControlRotation().Yaw, 0.0f)).GetUnitAxis(EAxis::X), NewAxisValue);
-
     switch (CurrentControlMode)
     {
     case EControlMode::GTA:
@@ -316,9 +274,6 @@ void AABCharacter::UpDown(float NewAxisValue)
 
 void AABCharacter::LeftRight(float NewAxisValue)
 {
-    // 컨트롤러 즉 캐릭터의 시선 방향으로 이동
-    //AddMovementInput(FRotationMatrix(FRotator(0.0f, GetControlRotation().Yaw, 0.0f)).GetUnitAxis(EAxis::Y), NewAxisValue);
-
     switch (CurrentControlMode)
     {
     case EControlMode::GTA:
@@ -332,8 +287,6 @@ void AABCharacter::LeftRight(float NewAxisValue)
 
 void AABCharacter::Turn(float NewAxisValue)
 {
-    //AddControllerYawInput(NewAxisValue);
-
     switch (CurrentControlMode)
     {
     case EControlMode::GTA:
@@ -344,8 +297,6 @@ void AABCharacter::Turn(float NewAxisValue)
 
 void AABCharacter::LookUp(float NewAxisValue)
 {
-    //AddControllerPitchInput(NewAxisValue);
-
     switch (CurrentControlMode)
     {
     case EControlMode::GTA:
@@ -371,8 +322,6 @@ void AABCharacter::ViewChange()
 
 void AABCharacter::Attack()
 {
-    // ABLOG_S(Warning);
-
     if (true == IsAttacking)
     {
         ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo));
@@ -380,7 +329,6 @@ void AABCharacter::Attack()
         {
             IsComboInputOn = true;
         }
-        //return;
     }
     else
     {
@@ -390,19 +338,6 @@ void AABCharacter::Attack()
         ABAnim->JumpToAttackMontageSection(CurrentCombo);
         IsAttacking = true;
     }
-    /*auto AnimInstance = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
-    if (nullptr == AnimInstance)
-    {
-        return;
-    }*/
-    /*if (nullptr == ABAnim)
-    {
-        return;
-    }*/
-
-    //AnimInstance->PlayAttackMontage();
-    //ABAnim->PlayAttackMontage();
-    //IsAttacking = true;
 }
 
 void AABCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool binterrupted)
@@ -431,25 +366,6 @@ void AABCharacter::AttackEndComboState()
 
 void AABCharacter::AttackCheck()
 {
-    /*FHitResult HitResult;
-    FCollisionQueryParams Params(NAME_None, false, this);
-    bool bResult = GetWorld()->SweepSingleByChannel(
-        HitResult,
-        GetActorLocation(),
-        GetActorLocation() + GetActorForwardVector() * 200.0f,
-        FQuat::Identity,
-        ECollisionChannel::ECC_GameTraceChannel2,
-        FCollisionShape::MakeSphere(50.0f),
-        Params);
-
-    if (true == bResult)
-    {
-        if (nullptr != HitResult.GetActor())
-        {
-            ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.GetActor()->GetName());
-        }
-    }*/
-
     FHitResult HitResult;
     FCollisionQueryParams Params(NAME_None, false, this);
     bool bResult = GetWorld()->SweepSingleByChannel(
@@ -487,7 +403,7 @@ void AABCharacter::AttackCheck()
             ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.GetActor()->GetName());
 
             FDamageEvent DamageEvent;
-            HitResult.GetActor()->TakeDamage(/*50.0f*/CharacterStat->GetAttack(), DamageEvent, GetController(), this);
+            HitResult.GetActor()->TakeDamage(CharacterStat->GetAttack(), DamageEvent, GetController(), this);
         }
     }
 }

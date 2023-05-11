@@ -76,6 +76,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = UI)
 	class UWidgetComponent* HPBarWidget;
 
+	// 왼쪽 마우스 버튼 => 공격
 	void Attack();
 	FOnAttackEndDelegate OnAttackEnd;
 
@@ -93,8 +94,6 @@ private:
 	// 액션
 	// Shift + V => GTA, 디아블로 모드 전환
 	void ViewChange();
-	// 왼쪽 마우스 버튼 => 공격
-	//void Attack();
 
 	// ====== 몽타주 =====
 	UFUNCTION()
