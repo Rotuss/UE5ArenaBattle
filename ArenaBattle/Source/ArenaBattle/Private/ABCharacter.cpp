@@ -9,6 +9,8 @@
 #include "Components/WidgetComponent.h"
 #include "ABCharacterWidget.h"
 #include "ABAIController.h"
+#include "ABCharacterSetting.h"
+#include "ABGameInstance.h"
 
 // Sets default values
 AABCharacter::AABCharacter()
@@ -74,12 +76,38 @@ AABCharacter::AABCharacter()
     AIControllerClass = AABAIController::StaticClass();
     AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
+    // ArenaBattleSetting 모듈 사용
+    // 애셋 목록 로그 출력 확인용
+    /*auto DefaultSetting = GetDefault<UABCharacterSetting>();
+    if (0 < DefaultSetting->CharacterAssets.Num())
+    {
+        for (auto CharacterAsset : DefaultSetting->CharacterAssets)
+        {
+            ABLOG(Warning, TEXT("Character Asset : %s"), *CharacterAsset.ToString());
+        }
+    }*/
+
 }
 
 // Called when the game starts or when spawned
 void AABCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+    if (false == IsPlayerControlled())
+    {
+        // ArenaBattleSetting 모듈
+        // 애셋 랜덤 로드
+        auto DefaultSetting = GetDefault<UABCharacterSetting>();
+        int32 RandIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+        CharacterAssetToLoad = DefaultSetting->CharacterAssets[RandIndex];
+
+        auto ABGameInstance = Cast<UABGameInstance>(GetGameInstance());
+        if (nullptr != ABGameInstance)
+        {
+            AssetStreamingHandle = ABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &AABCharacter::OnAssetLoadCompleted));
+        }
+    }
 
 }
 
@@ -405,6 +433,16 @@ void AABCharacter::AttackCheck()
             FDamageEvent DamageEvent;
             HitResult.GetActor()->TakeDamage(CharacterStat->GetAttack(), DamageEvent, GetController(), this);
         }
+    }
+}
+
+void AABCharacter::OnAssetLoadCompleted()
+{
+    AssetStreamingHandle->ReleaseHandle();
+    TSoftObjectPtr<USkeletalMesh> LoadedAssetPath(CharacterAssetToLoad);
+    if (true == LoadedAssetPath.IsValid())
+    {
+        GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
     }
 }
 

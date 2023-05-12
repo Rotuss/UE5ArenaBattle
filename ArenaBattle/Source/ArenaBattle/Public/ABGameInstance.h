@@ -5,6 +5,7 @@
 #include "ArenaBattle.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
+#include "Engine/StreamableManager.h"
 #include "ABGameInstance.generated.h"
 
 // CSV 파일을 불러들이기 위한 테이블 데이터 구조체
@@ -53,7 +54,10 @@ public:
 	UABGameInstance();
 
 	virtual void Init() override;
+    
     FABCharacterData* GetABCharacterData(int32 Level);
+
+    FStreamableManager StreamableManager;
 
 private:
     UPROPERTY()
