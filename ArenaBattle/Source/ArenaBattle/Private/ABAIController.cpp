@@ -29,7 +29,7 @@ void AABAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-    UBlackboardComponent* ABBlackboard = Cast<UBlackboardComponent>(Blackboard);
+    /*UBlackboardComponent* ABBlackboard = Cast<UBlackboardComponent>(Blackboard);
     if (UseBlackboard(BBAsset, ABBlackboard))
     {
         Blackboard->SetValueAsVector(HomePosKey, InPawn->GetActorLocation());
@@ -37,5 +37,27 @@ void AABAIController::OnPossess(APawn* InPawn)
         {
             ABLOG(Error, TEXT("AIController couldn't run behavior tree!"));
         }
+    }*/
+}
+
+void AABAIController::RunAI()
+{
+    UBlackboardComponent* ABBlackboard = Cast<UBlackboardComponent>(Blackboard);
+    if (true == UseBlackboard(BBAsset, ABBlackboard))
+    {
+        Blackboard->SetValueAsVector(HomePosKey, GetPawn()->GetActorLocation());
+        if (false == RunBehaviorTree(BTAsset))
+        {
+            ABLOG(Error, TEXT("AIController couldn't run behavior tree!"));
+        }
+    }
+}
+
+void AABAIController::StopAI()
+{
+    auto BehaviorTreeComponent = Cast<UBehaviorTreeComponent>(BrainComponent);
+    if (nullptr != BehaviorTreeComponent)
+    {
+        BehaviorTreeComponent->StopTree(EBTStopMode::Safe);
     }
 }

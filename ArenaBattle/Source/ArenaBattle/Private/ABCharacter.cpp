@@ -11,6 +11,9 @@
 #include "ABAIController.h"
 #include "ABCharacterSetting.h"
 #include "ABGameInstance.h"
+#include "ABPlayerController.h"
+#include "ABPlayerState.h"
+#include "ABHUDWidget.h"
 
 // Sets default values
 AABCharacter::AABCharacter()
@@ -87,6 +90,107 @@ AABCharacter::AABCharacter()
         }
     }*/
 
+    // 플레이어 애셋 로딩 지정 인덱스
+    AssetIndex = 4;
+
+    SetActorHiddenInGame(true);
+    HPBarWidget->SetHiddenInGame(true);
+    SetCanBeDamaged(false);
+
+    DeadTimer = 5.0f;
+
+}
+
+void AABCharacter::SetCharacterState(ECharacterState NewState)
+{
+    ABCHECK(CurrentState != NewState);
+    CurrentState = NewState;
+
+    switch (CurrentState)
+    {
+    case ECharacterState::LOADING:
+    {
+        if (true == bIsPlayer)
+        {
+            DisableInput(ABPlayerController);
+
+            ABPlayerController->GetHUDWidget()->BindCharacterStat(CharacterStat);
+
+            auto ABPlayerState = Cast<AABPlayerState>(GetPlayerState());
+            ABCHECK(nullptr != ABPlayerState);
+            CharacterStat->SetNewLevel(ABPlayerState->GetCharacterLevel());
+        }
+
+        SetActorHiddenInGame(true);
+        HPBarWidget->SetHiddenInGame(true);
+        SetCanBeDamaged(false);
+        break;
+    }
+    case ECharacterState::READY:
+    {
+        SetActorHiddenInGame(false);
+        HPBarWidget->SetHiddenInGame(false);
+        SetCanBeDamaged(true);
+        CharacterStat->OnHPIsZero.AddLambda([this]() -> void {
+            SetCharacterState(ECharacterState::DEAD);
+            });
+
+        auto CharacterWidget = Cast<UABCharacterWidget>(HPBarWidget->GetUserWidgetObject());
+        ABCHECK(nullptr != CharacterWidget);
+        CharacterWidget->BindCharacterStat(CharacterStat);
+
+        if (true == bIsPlayer)
+        {
+            SetControlMode(EControlMode::DIABLO);
+            GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+            EnableInput(ABPlayerController);
+        }
+        else
+        {
+            SetControlMode(EControlMode::NPC);
+            GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+            ABAIController->RunAI();
+        }
+
+        break;
+    }
+    case ECharacterState::DEAD:
+    {
+        SetActorEnableCollision(false);
+        GetMesh()->SetHiddenInGame(false);
+        HPBarWidget->SetHiddenInGame(true);
+        ABAnim->SetDeadAnim();
+        SetCanBeDamaged(false);
+
+        if (true == bIsPlayer)
+        {
+            DisableInput(ABPlayerController);
+        }
+        else
+        {
+            ABAIController->StopAI();
+        }
+
+        GetWorld()->GetTimerManager().SetTimer(DeadTimerHandle, FTimerDelegate::CreateLambda([this]() -> void {
+            if (true == bIsPlayer)
+            {
+                ABPlayerController->RestartLevel();
+            }
+            else
+            {
+                Destroy();
+            }
+
+            }), DeadTimer, false);
+
+        break;
+    }
+    }
+}
+
+ECharacterState AABCharacter::GetCharacterState() const
+{
+    return ECharacterState();
 }
 
 // Called when the game starts or when spawned
@@ -94,20 +198,49 @@ void AABCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-    if (false == IsPlayerControlled())
-    {
-        // ArenaBattleSetting 모듈
-        // 애셋 랜덤 로드
-        auto DefaultSetting = GetDefault<UABCharacterSetting>();
-        int32 RandIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
-        CharacterAssetToLoad = DefaultSetting->CharacterAssets[RandIndex];
+    //if (false == IsPlayerControlled())
+    //{
+    //    // ArenaBattleSetting 모듈
+    //    // 애셋 랜덤 로드
+    //    auto DefaultSetting = GetDefault<UABCharacterSetting>();
+    //    int32 RandIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+    //    CharacterAssetToLoad = DefaultSetting->CharacterAssets[RandIndex];
 
-        auto ABGameInstance = Cast<UABGameInstance>(GetGameInstance());
-        if (nullptr != ABGameInstance)
-        {
-            AssetStreamingHandle = ABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &AABCharacter::OnAssetLoadCompleted));
-        }
+    //    auto ABGameInstance = Cast<UABGameInstance>(GetGameInstance());
+    //    if (nullptr != ABGameInstance)
+    //    {
+    //        AssetStreamingHandle = ABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &AABCharacter::OnAssetLoadCompleted));
+    //    }
+    //}
+
+    bIsPlayer = IsPlayerControlled();
+    if (true == bIsPlayer)
+    {
+        ABPlayerController = Cast<AABPlayerController>(GetController());
+        ABCHECK(nullptr != ABPlayerController);
     }
+    else
+    {
+        ABAIController = Cast<AABAIController>(GetController());
+        ABCHECK(nullptr != ABAIController);
+    }
+
+    auto DefaultSetting = GetDefault<UABCharacterSetting>();
+
+    if (true == bIsPlayer)
+    {
+        AssetIndex = 4;
+    }
+    else
+    {
+        AssetIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+    }
+
+    CharacterAssetToLoad = DefaultSetting->CharacterAssets[AssetIndex];
+    auto ABGameInstance = Cast<UABGameInstance>(GetGameInstance());
+    ABCHECK(nullptr != ABGameInstance);
+    AssetStreamingHandle = ABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &AABCharacter::OnAssetLoadCompleted));
+    SetCharacterState(ECharacterState::LOADING);
 
 }
 
@@ -228,28 +361,38 @@ float AABCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 {
     float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstingator, DamageCauser);
     
-    ABLOG(Warning, TEXT("Actor : %s took damage : %f"), *GetName(), FinalDamage);
+    //ABLOG(Warning, TEXT("Actor : %s took damage : %f"), *GetName(), FinalDamage);
 
     CharacterStat->SetDamage(FinalDamage);
+
+    if (ECharacterState::DEAD == CurrentState)
+    {
+        if (true == EventInstingator->IsPlayerController())
+        {
+            auto instigator = Cast<AABPlayerController>(EventInstingator);
+            ABCHECK(nullptr != instigator, 0.0f);
+            instigator->NPCKill(this);
+        }
+    }
 
     return FinalDamage;
 }
 
-void AABCharacter::PossessedBy(AController* NewController)
-{
-    Super::PossessedBy(NewController);
-
-    if (true == IsPlayerControlled())
-    {
-        SetControlMode(EControlMode::DIABLO);
-        GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-    }
-    else
-    {
-        SetControlMode(EControlMode::NPC);
-        GetCharacterMovement()->MaxWalkSpeed = 300.0f;
-    }
-}
+//void AABCharacter::PossessedBy(AController* NewController)
+//{
+//    Super::PossessedBy(NewController);
+//
+//    if (true == IsPlayerControlled())
+//    {
+//        SetControlMode(EControlMode::DIABLO);
+//        GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+//    }
+//    else
+//    {
+//        SetControlMode(EControlMode::NPC);
+//        GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+//    }
+//}
 
 // Called to bind functionality to input
 void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -266,6 +409,11 @@ void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
     PlayerInputComponent->BindAction(TEXT("ViewChange"), EInputEvent::IE_Pressed, this, &AABCharacter::ViewChange);
     PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &ACharacter::Jump);
     PlayerInputComponent->BindAction(TEXT("Attack"), EInputEvent::IE_Pressed, this, &AABCharacter::Attack);
+}
+
+int32 AABCharacter::GetEXP() const
+{
+    return CharacterStat->GetDropExp();
 }
 
 bool AABCharacter::CanSetWeapon()
@@ -440,9 +588,13 @@ void AABCharacter::OnAssetLoadCompleted()
 {
     AssetStreamingHandle->ReleaseHandle();
     TSoftObjectPtr<USkeletalMesh> LoadedAssetPath(CharacterAssetToLoad);
-    if (true == LoadedAssetPath.IsValid())
+    ABCHECK(LoadedAssetPath.IsValid());
+
+    /*if (true == LoadedAssetPath.IsValid())
     {
         GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
-    }
+    }*/
+    GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
+    SetCharacterState(ECharacterState::READY);
 }
 

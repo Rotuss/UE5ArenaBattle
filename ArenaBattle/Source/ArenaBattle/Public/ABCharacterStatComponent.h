@@ -38,6 +38,8 @@ public:
 	float GetAttack();
 	// 체력 비율
 	float GetHPRatio();
+	// 경험치 획득
+	int32 GetDropExp() const;
 
 	FOnHPIsZeroDelegate OnHPIsZero;
 	FOnHPChangedDelegate OnHPChanged;

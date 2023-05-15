@@ -4,6 +4,16 @@
 
 #include "EngineMinimal.h"
 
+UENUM(BlueprintType)
+enum class ECharacterState : uint8
+{
+    PERINIT,
+    LOADING,
+    READY,
+    DEAD,
+    END
+};
+
 DECLARE_LOG_CATEGORY_EXTERN(ArenaBattle, Log, All);
 
 #define ABLOG_CALLINFO (FString(__FUNCTION__) + TEXT("(") + FString::FromInt(__LINE__) + TEXT(")"))
