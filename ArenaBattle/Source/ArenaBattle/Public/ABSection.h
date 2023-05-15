@@ -51,6 +51,10 @@ private:
 	// NPC 생성
 	void OnNPCSpawn();
 
+	// NPC 제거 후 스테이트 변경
+	UFUNCTION()
+	void OnKeyNPCDestoryed(AActor* DestroyedActor);
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Mesh, Meta = (AllowPrivateAccess = true))
 	TArray<UStaticMeshComponent*> GateMeshes;
