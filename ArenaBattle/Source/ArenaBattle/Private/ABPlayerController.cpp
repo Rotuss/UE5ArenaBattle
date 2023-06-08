@@ -5,17 +5,26 @@
 #include "ABHUDWidget.h"
 #include "ABPlayerState.h"
 #include "ABCharacter.h"
+#include "ABGameplayWidget.h"
+#include "ABGameplayResultWidget.h"
+#include "ABGameState.h"
 
 void AABPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ChangeInputMode(true);
 
 	// 뷰포트 클릭의 번거로움을 위해 적용
 	FInputModeGameOnly InputMode;
 	SetInputMode(InputMode);
 
 	HUDWidget = CreateWidget<UABHUDWidget>(this, HUDWidgetClass);
+	ABCHECK(nullptr != HUDWidget);
 	HUDWidget->AddToViewport();
+
+	ResultWidget = CreateWidget<UABGameplayResultWidget>(this, ResultWidgetClass);
+	ABCHECK(nullptr != ResultWidget);
 
 	ABPlayerState = Cast<AABPlayerState>(PlayerState);
 	ABCHECK(nullptr != ABPlayerState);
@@ -26,6 +35,19 @@ void AABPlayerController::BeginPlay()
 
 void AABPlayerController::SetupInputComponent()
 {
+	Super::SetupInputComponent();
+
+	InputComponent->BindAction(TEXT("GamePause"), EInputEvent::IE_Pressed, this, &AABPlayerController::OnGamePause);
+}
+
+void AABPlayerController::OnGamePause()
+{
+	MenuWidget = CreateWidget<UABGameplayWidget>(this, MenuWidgetClass);
+	ABCHECK(nullptr != MenuWidget);
+	MenuWidget->AddToViewport(3);
+
+	SetPause(true);
+	ChangeInputMode(false);
 }
 
 AABPlayerController::AABPlayerController()
@@ -34,6 +56,18 @@ AABPlayerController::AABPlayerController()
 	if (UI_HUD_C.Succeeded())
 	{
 		HUDWidgetClass = UI_HUD_C.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UABGameplayWidget> UI_MENU_C(TEXT("WidgetBlueprint'/Game/UI/UI_Menu.UI_Menu_C'"));
+	if (UI_MENU_C.Succeeded())
+	{
+		MenuWidgetClass = UI_MENU_C.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UABGameplayWidget> UI_RESULT_C(TEXT("WidgetBlueprint'/Game/UI/UI_Result.UI_Result_C'"));
+	if (UI_RESULT_C.Succeeded())
+	{
+		ResultWidgetClass = UI_RESULT_C.Class;
 	}
 }
 
@@ -62,4 +96,28 @@ void AABPlayerController::NPCKill(AABCharacter* KilledNPC) const
 void AABPlayerController::AddGameScore() const
 {
 	ABPlayerState->AddGameScore();
+}
+
+void AABPlayerController::ChangeInputMode(bool bGameMode)
+{
+	if (true == bGameMode)
+	{
+		SetInputMode(GameInputMode);
+		bShowMouseCursor = false;
+	}
+	else
+	{
+		SetInputMode(UIInputMode);
+		bShowMouseCursor = true;
+	}
+}
+
+void AABPlayerController::ShowResultUI()
+{
+	auto ABGameState = Cast<AABGameState>(UGameplayStatics::GetGameState(this));
+	ABCHECK(nullptr != ABGameState);
+	ResultWidget->BindGameState(ABGameState);
+	
+	ResultWidget->AddToViewport();
+	ChangeInputMode(false);
 }

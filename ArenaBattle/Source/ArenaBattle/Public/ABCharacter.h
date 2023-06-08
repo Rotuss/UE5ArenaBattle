@@ -58,6 +58,10 @@ public:
 
 	// 경험치
 	int32 GetEXP() const;
+	// 무기 여부에 따라 공격범위 결정
+	float GetFinalAttackRange() const;
+	// 무기에 따른 공격력 계산
+	float GetFinalAttackDamage() const;
 
 	// 무기 세팅 확인 함수
 	bool CanSetWeapon();
